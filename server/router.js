@@ -29,7 +29,7 @@ app.use('/', router);
 router.post("/cloudServer/createNewUser", async (req, res) => {
     const SALT_ROUNDS = 12;
 
-    // ---------------- ******** Change CUST ********----------------
+    // ---------------- ******** Change CUST ********---------------
     try {
         const { username, password } = req.body;
         if (!username || !password) {
