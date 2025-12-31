@@ -1,0 +1,254 @@
+import { useState, useEffect, useCallback } from "react";
+import logo from '../../src/logo.png'
+import HomePage from '../components/HomePage';
+
+function Login() {
+    /*********************************************************************************************************************/
+    const [user, setUser] = useState("");
+    const [password, setPassword] = useState("");
+    const [result, setResult] = useState(null);
+    const [userDetails, setUserDetails] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [fullscreenName, setFullscreenName] = useState(false);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
+    /*********************************************************************************************************************/
+    const handleChangeUser = (e) => {
+        setUser(e.target.value);
+    };
+    /*********************************************************************************************************************/
+    const handleChangePassword = (e) => {
+        setPassword(e.target.value);
+    };
+    /*********************************************************************************************************************/
+    const loginConnection = useCallback(async (e) => {
+        e.preventDefault();
+
+        setLoading(true);
+        setResult(null);
+
+        if (!user || !password) {
+            setLoading(false);
+            setResult({ success: false });
+            setTimeout(() => {
+                setResult(null)
+            }, 3000)
+            return;
+        }
+
+        try {
+            const res = await fetch("/cloudServer/login", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ user, password })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                setResult({ success: false, message: data.message || "Invalid credentials", emessage: data.emessage });
+                setTimeout(() => {
+                    setResult(null)
+                }, 3000)
+                return;
+            }
+
+            console.log("Login response data:", data);
+            if (data.success && data.token) {
+                localStorage.setItem("token", data.token);
+                setIsLoggedIn(true);
+                setUser("");
+                setPassword("");
+                setResult(null);
+                console.log("token stored in localStorage:", data.token);
+
+                setUserDetails({
+                    user: data.userLogin,
+                    user_id: data.user_id,
+                    user_guid: data.user_guid,
+                    token: data.token,
+                });
+
+                if (
+                    !document.fullscreenElement
+                ) {
+                    toggleFullscreen();
+                }
+
+                const resProtected = await fetch("/cloudServer/protected", {
+                    method: "GET",
+                    headers: {
+                        "Authorization": `Bearer ${data.token}`
+                    }
+                });
+
+                await resProtected.json();
+            }
+
+        } catch (err) {
+            setResult({ success: false, message: err.message });
+        } finally {
+            setLoading(false);
+        }
+    }, [user, password]);
+    /*********************************************************************************************************************/
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            const isFullscreen = !!(
+                document.fullscreenElement ||
+                document.mozFullScreenElement ||
+                document.webkitFullscreenElement ||
+                document.msFullscreenElement
+            );
+            setFullscreenName(isFullscreen);
+        };
+
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+        document.addEventListener('mozfullscreenchange', handleFullscreenChange);
+        document.addEventListener('MSFullscreenChange', handleFullscreenChange);
+
+        return () => {
+            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('mozfullscreenchange', handleFullscreenChange);
+            document.removeEventListener('MSFullscreenChange', handleFullscreenChange);
+        };
+    }, []);
+    /*********************************************************************************************************************/
+    const toggleFullscreen = () => {
+        if (
+            document.fullscreenElement ||
+            document.mozFullScreenElement ||
+            document.webkitFullscreenElement ||
+            document.msFullscreenElement
+        ) {
+            // Currently fullscreen, exit
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            } else if (document.mozCancelFullScreen) {
+                document.mozCancelFullScreen();
+            } else if (document.webkitExitFullscreen) {
+                document.webkitExitFullscreen();
+            } else if (document.msExitFullscreen) {
+                document.msExitFullscreen();
+            }
+        } else {
+            // Not fullscreen, request
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.mozRequestFullScreen) {
+                elem.mozRequestFullScreen();
+            } else if (elem.webkitRequestFullscreen) {
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) {
+                elem.msRequestFullscreen();
+            }
+        }
+    };
+    /*********************************************************************************************************************/
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (e.key === "Enter") {
+                loginConnection(e);
+            }
+        };
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [loginConnection]);
+    /*********************************************************************************************************************/
+    if (isLoggedIn) {
+        return (
+            <HomePage
+                setIsLoggedIn={setIsLoggedIn}
+                user={userDetails}
+            />
+        );
+    }
+    /*********************************************************************************************************************/
+    return (
+        <div>
+            <div className="container mt-4 text-start">
+
+                <div className="d-flex gap-2 align-items-center" dir="ltr">
+                    <img className='me-2 ms-2' src={logo} width="100rem" alt='logo'></img>
+
+                    <button
+                        className='btn border border-primary text-primary btn-sm px-3 py-1'
+                        onClick={toggleFullscreen}
+                    >
+                        {fullscreenName ? <i className="bi bi-fullscreen-exit"></i> : <i className="bi bi-arrows-fullscreen"></i>}
+                    </button>
+
+                </div>
+
+                <form onSubmit={loginConnection}>
+                    <div>
+                        <h3 className="mb-4 text-center fw-bold" style={{ color: "#00adee" }}>התחברות לחשבון מנהל</h3>
+                        <hr />
+
+                        {/* User */}
+                        <div className="mb-3">
+                            <label htmlFor="user" className="form-label fw-bold" style={{ color: "#00adee" }}>
+                                שם משתמש
+                                <span style={{ color: "red" }}>*</span>
+                            </label>
+                            <input
+                                dir="ltr"
+                                type="text"
+                                className="form-control text-start"
+                                name="user"
+                                value={user}
+                                onChange={handleChangeUser}
+                                autoComplete="user"
+                                id="user"
+                            />
+                        </div>
+
+                        {/* Password */}
+                        <div className="mb-3">
+                            <label htmlFor="password" className="form-label fw-bold" style={{ color: "#00adee" }}>
+                                סיסמה
+                                <span style={{ color: "red" }}>*</span>
+                            </label>
+                            <input
+                                dir="ltr"
+                                type="password"
+                                className="form-control text-start"
+                                name="password"
+                                value={password}
+                                onChange={handleChangePassword}
+                                id="password"
+                                autoComplete="new-password"
+                            />
+                        </div>
+
+                        {/* Submit button */}
+                        <button
+                            className="btn btn-primary w-100 fw-bold"
+                            disabled={loading}
+                            style={{ backgroundColor: "#00adee", borderColor: "#00adee" }}
+                        >
+                            {loading ? 'טוען' : 'לחץ להתחברות'}
+                        </button>
+
+                        {/* Result */}
+                        {result && (
+                            <div
+                                className={`alert mt-3 text-center ${result.success ? "alert-success" : "alert-danger"}`}
+                                role="alert"
+                            >
+                                {result.message || result.emessage}
+
+                            </div>
+                        )}
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+export default Login;
