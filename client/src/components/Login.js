@@ -11,6 +11,11 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [fullscreenName, setFullscreenName] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [capsOn, setCapsOn] = useState(false);
+    /*********************************************************************************************************************/
+    const handleCaps = (e) => {
+        setCapsOn(e.getModifierState && e.getModifierState("CapsLock"));
+    };
     /*********************************************************************************************************************/
     const handleChangeUser = (e) => {
         setUser(e.target.value);
@@ -28,7 +33,7 @@ function Login() {
 
         if (!user || !password) {
             setLoading(false);
-            setResult({ success: false });
+            setResult({ message: "יש למלא שם משתמש וסיסמה" });
             setTimeout(() => {
                 setResult(null)
             }, 3000)
@@ -54,7 +59,6 @@ function Login() {
                 return;
             }
 
-            console.log("Login response data:", data);
             if (data.success && data.token) {
                 localStorage.setItem("token", data.token);
                 setIsLoggedIn(true);
@@ -222,7 +226,17 @@ function Login() {
                                 onChange={handleChangePassword}
                                 id="password"
                                 autoComplete="new-password"
+                                onKeyDown={handleCaps}
+                                onKeyUp={handleCaps}
+                                onFocus={handleCaps}
+                                onBlur={() => setCapsOn(false)}
+                                aria-describedby="caps-warning"
                             />
+                            {capsOn && (
+                                <div id="caps-warning" style={{ marginTop: 6, color: "crimson", fontSize: 12 }} dir="ltr">
+                                    Caps Lock פעיל
+                                </div>
+                            )}
                         </div>
 
                         {/* Submit button */}
