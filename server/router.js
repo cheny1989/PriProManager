@@ -28,27 +28,71 @@ app.use('/', router);
 /*********************************************************************************************************************/
 /********** User **********/
 /*********************************************************************************************************************/
+router.post('/cloudServer/CustomerUser', async (req, res) => {
+    const { username, cust } = req.body;
+
+    if (!username || !cust) {
+        return res.status(400).json({ message: "Missing username or cust in request body" });
+    }
+
+    try {
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const r = await pool.request()
+            .input("username", sql.NVarChar(20), username)
+            .input("cust", sql.Int, cust)
+            .query(`
+                SELECT 1 AS user_exists,
+                CUSTOMERS.CUSTDES AS cust_des
+                FROM USERS
+                JOIN CUSTOMERS ON CUSTOMERS.CUST = USERS.CUST
+                WHERE CUSTOMERS.CUST = @cust
+                AND USERS.USERNAME = @username;
+                `);
+
+        const exists = r.recordset?.[0];
+
+        return res.json({
+            user_exists: exists ? true : false,
+            cust_des: exists ? exists.cust_des : null
+        });
+
+
+    } catch (err) {
+        console.error("Error CustomerUser:", err);
+        return res.status(500).json({ message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
 router.post("/cloudServer/createNewUser", async (req, res) => {
     const SALT_ROUNDS = 12;
 
-    // ---------------- ******** Change CUST ********---------------
     try {
-        const { username, password } = req.body;
-        if (!username || !password) {
-            return res.status(400).json({ success: false, message: "Missing username/password" });
+
+        const dataArray = req.body?.dataArray;
+
+        if (!dataArray) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing dataArray in request body"
+            });
         }
+
+        const { username, password, cust } = dataArray;
+
 
         const passhash = await bcrypt.hash(password, SALT_ROUNDS);
 
         const pool = await getPoolByKey("PriProProduction", config);
 
         const request = pool.request();
-        request.input("userlogin", sql.NVarChar(20), username);
+        request.input("username", sql.NVarChar(20), username);
         request.input("passhash", sql.NVarChar(127), passhash);
+        request.input("cust", sql.Int, cust);
 
         const result = await request.query(`
       INSERT INTO dbo.USERS (USERNAME, PASSHASH, CUST)
-      VALUES (@userlogin, @passhash, 99);
+      VALUES (@username, @passhash, @cust);
     `);
 
         const ok = result?.rowsAffected?.[0] === 1;
@@ -63,6 +107,50 @@ router.post("/cloudServer/createNewUser", async (req, res) => {
     }
 });
 /*********************************************************************************************************************/
+router.put("/cloudServer/updatePassword", async (req, res) => {
+    const SALT_ROUNDS = 12;
+
+    try {
+
+        const dataArray = req.body?.dataArray;
+
+        if (!dataArray) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing dataArray in request body"
+            });
+        }
+
+        const { username, password, cust } = dataArray;
+
+
+        const passhash = await bcrypt.hash(password, SALT_ROUNDS);
+
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const request = pool.request();
+        request.input("username", sql.NVarChar(20), username);
+        request.input("passhash", sql.NVarChar(127), passhash);
+        request.input("cust", sql.Int, cust);
+
+        const result = await request.query(`
+      UPDATE dbo.USERS SET PASSHASH = @passhash
+      WHERE USERNAME = @username AND CUST = @cust;
+    `);
+
+        const ok = result?.rowsAffected?.[0] === 1;
+        return res.json({ success: ok });
+    } catch (err) {
+        if (err?.number === 2627 || err?.number === 2601) {
+            return res.status(409).json({ success: false, message: "Username already exists" });
+        }
+
+        console.error("Error createNewUser:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
+
 const loginAttempts = {};
 const MAX_ATTEMPTS = 5;
 const BLOCK_TIME = 60 * 1000;
@@ -245,6 +333,47 @@ router.put("/cloudServer/updatePackages/:packageId", async (req, res) => {
 /*********************************************************************************************************************/
 /********** Customers **********/
 /*********************************************************************************************************************/
+router.get('/cloudServer/getCustomers', async (req, res) => {
+
+    const { guid } = req.params;
+
+    try {
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const customer = await pool.request()
+            .input('guid', sql.NVarChar, guid)
+            .query(` 
+                SELECT 
+                ADDRESS,
+                PHONE,
+                CUSTDES,
+                ZIP,
+                ACCNAME,
+                COUNTRYNAME,
+                WTAXNUM,
+                VATNUM,
+                CITY,
+                ADDRESS2,
+                ADDRESS3,
+                EMAIL,
+                PACKAGE,
+                CUST
+                FROM CUSTOMERS
+                WHERE CUST <> 0;
+                `);
+
+        if (customer.recordset.length > 0) {
+            res.json(customer.recordset);
+        } else {
+            res.json([]);
+        }
+
+    } catch (err) {
+        console.error("Error getting forms:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
 router.get('/cloudServer/getCustomer/:guid', async (req, res) => {
 
     const { guid } = req.params;
@@ -291,13 +420,11 @@ router.post('/cloudServer/createCustomer', async (req, res) => {
     const dataArray = req.body?.dataArray;
 
     if (!dataArray) {
-        console.log("BODY:", req.body);
         return res.status(400).json({
             success: false,
             message: "Missing dataArray in request body"
         });
     }
-
 
     const {
         accname, custdes,
@@ -364,7 +491,6 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
             return res.status(400).json({ success: false, message: "Missing dataArray" });
         }
 
-        console.log("updateCustomer dataArray:", dataArray);
         const {
             cust,
             accname, custdes,

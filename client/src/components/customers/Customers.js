@@ -247,7 +247,7 @@ const Customers = () => {
                         <h5 style={{ color: "#00adee" }}>יצירת לקוח חדש/עדכון</h5>
 
                         <div
-                            className="row g-3 mt-3 align-items-end"
+                            className="row g-3 mt-2 pb-4 align-items-end border rounded p-2 me-1 ms-1 mt-3"
                             style={{
                                 borderBottom: "1px solid #d9dde2ff",
                                 paddingBottom: "1rem",
@@ -270,7 +270,7 @@ const Customers = () => {
                                     type="button"
                                     className="btn btn-secondary w-50"
                                     onClick={getCustomer}
-                                    disabled={isDisable}
+                                    disabled={isDisable || !guid}
                                 >
                                     שליפת לקוח
                                 </button>
@@ -329,7 +329,7 @@ const Customers = () => {
 
                             <div className="col-md-4">
                                 <label className="form-label">דואר אלקטרוני <span className='text-danger'>*</span></label>
-                                <input type="email" className="form-control" onChange={markDirty(setEmail)} dir='ltr' />
+                                <input type="email" className="form-control" value={email} onChange={markDirty(setEmail)} dir='ltr' />
                             </div>
 
                             {/* Finance */}

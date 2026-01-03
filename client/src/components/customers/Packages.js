@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 
 const Packages = () => {
-    ;
     const [packageData, setPackageData] = useState([]);
     const [loading, setLoading] = useState(false);
     const [displayAlertMessage, setDisplayAlertMessage] = useState(false);
@@ -92,6 +91,7 @@ const Packages = () => {
     return (
         <div className="p-3 m-3 card mb-4">
             <div className='card-body'>
+
                 {/* Loading */}
                 {loading && (
                     <div className="loading-overlay">
@@ -174,7 +174,7 @@ const Packages = () => {
 
                                             <td>
                                                 <button
-                                                    className="btn btn-sm w-75"
+                                                    className="btn btn-secondary w-75 btn-sm"
                                                     style={{ backgroundColor: "#00adee", color: "white" }}
                                                     onClick={() => saveRow(row)}
                                                     disabled={!!saving[row.PACKAGE] || !isChange[row.PACKAGE]}

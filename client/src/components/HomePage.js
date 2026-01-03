@@ -3,6 +3,7 @@ import logo from '../../src/PRIPRO-BG.png';
 
 import Customers from "./customers/Customers";
 import Packages from "./customers/Packages";
+import Users from "./customers/Users";
 
 function HomePage({ setIsLoggedIn, user }) {
     const [fullscreenName, setFullscreenName] = useState(false);
@@ -145,6 +146,7 @@ function HomePage({ setIsLoggedIn, user }) {
             <div dir="rtl">
                 <Customers />
                 <Packages />
+                <Users />
             </div>
 
         </div>
