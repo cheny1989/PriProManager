@@ -250,7 +250,8 @@ const Users = () => {
                     </Modal.Footer>
                 </Modal>
 
-                <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >משתמשים</h4>
+                <h4 className='fw-bold' style={{ color: "#00adee" }} >משתמשים</h4>
+                <div style={{ fontSize: "0.85rem" }} className='text-secondary mt-0 mb-3'>אנא ודא שהסיסמה החדשה כוללת לפחות 8 תווים, אותיות קטנות, אותיות גדולות, מספרים ותווים מיוחדים</div>
 
                 <div className="card">
                     <div className="card-body p-3">

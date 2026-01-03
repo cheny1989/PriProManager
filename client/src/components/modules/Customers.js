@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
+import AllCustomers from './AllCustomers';
 
 const Customers = () => {
     const [address, setAddress] = useState('');
@@ -21,9 +22,13 @@ const Customers = () => {
     const [alertMessageBody, setAlertMessageBody] = useState('');
     const [loading, setLoading] = useState(false);
     const handleClose = () => setDisplayAlertMessage(false);
-    const [guid, setguid] = useState('');
+    const [guid, setGuid] = useState('');
     const [cust, setCust] = useState(null);
     const [isDisable, setIsDisable] = useState(false);
+    /********************************************************************************************************************/
+    const handleImportCustomer = (guidValue) => {
+        setGuid(guidValue);
+    };
     /********************************************************************************************************************/
     const markDirty = (setter) => (e) => {
         setter(e.target.value);
@@ -99,7 +104,7 @@ const Customers = () => {
         setEmail('');
         setPackagecust(0);
         setCust(null);
-        setguid('');
+        setGuid('');
         setIsDisable(false);
     }
     /********************************************************************************************************************/
@@ -129,7 +134,7 @@ const Customers = () => {
             address, address2, address3,
             city, zip, countryname,
             phone, email,
-            wtaxnum, vatnum, packagecust:Number(packagecust)
+            wtaxnum, vatnum, packagecust: Number(packagecust)
         };
 
         if (!accname || !custdes || !phone || !email || !wtaxnum || !vatnum || !packagecust) {
@@ -175,9 +180,9 @@ const Customers = () => {
             address, address2, address3,
             city, zip, countryname,
             phone, email,
-            wtaxnum, vatnum, 
-            packagecust:Number(packagecust), 
-            cust:Number(cust)
+            wtaxnum, vatnum,
+            packagecust: Number(packagecust),
+            cust: Number(cust)
         };
 
         if (!accname || !custdes || !phone || !email || !wtaxnum || !vatnum || !packagecust || !cust) {
@@ -259,7 +264,7 @@ const Customers = () => {
                                 <input
                                     className="form-control w-100"
                                     value={guid}
-                                    onChange={(e) => setguid(e.target.value)}
+                                    onChange={(e) => setGuid(e.target.value)}
                                     dir="ltr"
                                     disabled={isDisable}
                                 />
@@ -380,9 +385,10 @@ const Customers = () => {
                         </div>
 
                     </div>
-
                 </div>
             </div>
+
+            <AllCustomers onImportCustomer={handleImportCustomer}/>
         </div>
     );
 };

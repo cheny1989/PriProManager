@@ -34,3 +34,13 @@ code {
 .btn:hover{
   opacity: 0.9;
 }
+
+.btnMenu:hover{
+  background-color: #00adee !important;
+  color: white !important;
+}
+
+.importCust:hover{
+  background-color: #4a4a4a !important;
+  color: white !important;
+}

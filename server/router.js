@@ -357,7 +357,47 @@ router.get('/cloudServer/getCustomers', async (req, res) => {
                 ADDRESS3,
                 EMAIL,
                 PACKAGE,
-                CUST
+                CUST,
+                GUID
+                FROM CUSTOMERS
+                WHERE CUST <> 0;
+                `);
+
+        if (customer.recordset.length > 0) {
+            res.json(customer.recordset);
+        } else {
+            res.json([]);
+        }
+
+    } catch (err) {
+        console.error("Error getting forms:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
+router.get('/cloudServer/getAllCustomer', async (req, res) => {
+
+    try {
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const customer = await pool.request()
+            .query(` 
+                SELECT 
+                ADDRESS,
+                PHONE,
+                CUSTDES,
+                ZIP,
+                ACCNAME,
+                COUNTRYNAME,
+                WTAXNUM,
+                VATNUM,
+                CITY,
+                ADDRESS2,
+                ADDRESS3,
+                EMAIL,
+                PACKAGE,
+                CUST,
+                GUID
                 FROM CUSTOMERS
                 WHERE CUST <> 0;
                 `);
@@ -555,6 +595,41 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
     } catch (err) {
         console.error("Error updateCustomer:", err);
         return res.status(500).json({ success: false, message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
+router.get('/cloudServer/getInvoices/:custId', async (req, res) => {
+
+    const { custId } = req.params;
+
+    if (!custId) {
+        return res.status(400).json({ message: "Missing cust in request body" });
+    }
+
+    try {
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const customer = await pool.request()
+            .input('custId', sql.NVarChar, custId)
+            .query(` 
+            SELECT
+                INVOICES.IV,
+                INVOICES.IVNUM, INVOICES.DISPRICE, INVOICES.VAT, INVOICES.TOTPRICE, INVOICES.CUST, INVOICES.IVREF, INVOICES.DEBIT, INVOICES.SDINUMIT, INVOICES.IVDATE,
+				CUSTOMERS.CUSTDES, CUSTOMERS.PHONE, CUSTOMERS.EMAIL
+            FROM CUSTOMERS 
+			LEFT JOIN INVOICES ON CUSTOMERS.CUST = INVOICES.CUST
+            WHERE CUSTOMERS.CUST = @custId;
+                `);
+
+        if (customer.recordset.length > 0) {
+            res.json(customer.recordset);
+        } else {
+            res.json([]);
+        }
+
+    } catch (err) {
+        console.error("Error getting forms:", err);
+        res.status(500).json({ message: "Server error" });
     }
 });
 /*********************************************************************************************************************/

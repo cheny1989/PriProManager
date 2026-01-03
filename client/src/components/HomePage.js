@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import logo from '../../src/PRIPRO-BG.png';
 
-import Customers from "./customers/Customers";
-import Packages from "./customers/Packages";
-import Users from "./customers/Users";
+import Customers from "./modules/Customers";
+import Packages from "./modules/Packages";
+import Users from "./modules/Users";
+import Billing from "./modules/Billing";
 
 function HomePage({ setIsLoggedIn, user }) {
     const [fullscreenName, setFullscreenName] = useState(false);
+    const [active, setActive] = useState("");
 
     const userName = user?.user || "";
     // const userId = user?.user_id || "";
@@ -85,6 +87,17 @@ function HomePage({ setIsLoggedIn, user }) {
         }
     };
     /********************************************************************************************************************/
+    const MenuItem = ({ id, label }) => (
+        <button
+            type="button"
+            onClick={() => setActive(id)}
+            className={`btnMenu btn btn-sm fw-bold rounded-0 border border-light d-flex align-items-center gap-2`}
+            style={{ letterSpacing: "0.5px", color: active === id ? "#00adee" : "white" }}
+        >
+            {label}
+        </button>
+    );
+    /********************************************************************************************************************/
     return (
         <div>
             <div
@@ -102,6 +115,7 @@ function HomePage({ setIsLoggedIn, user }) {
                             alt="logo"
                             className="ms-1"
                             style={{ cursor: "pointer" }}
+                            onClick={() => setActive("")}
                         />
 
                         <div
@@ -144,9 +158,29 @@ function HomePage({ setIsLoggedIn, user }) {
             </div>
 
             <div dir="rtl">
-                <Customers />
-                <Packages />
-                <Users />
+                {/* Menu */}
+                <div className="d-flex gap-2 p-2 border-bottom" style={{ backgroundColor: "#0b2a3a" }}>
+                    <MenuItem id="customers" className="btnMenu" label="לקוחות" />
+                    <MenuItem id="packages" className="btnMenu" label="חבילות" />
+                    <MenuItem id="users" className="btnMenu" label="משתמשים" />
+                    <MenuItem id="billing" className="btnMenu" label="חשבוניות" />
+                </div>
+
+                {/* Content */}
+                <div className="p-3">
+                    {active === "" ?
+                        <div
+                            className="text-center fs-4 fw-bold text-secondary mt-5"
+                        > 
+                            ברוכים הבאים למערכת ניהול PriPro Manager. <br />
+                            אנא בחרו קטגוריה מהתפריט למעלה כדי להתחיל. </div>
+                        : null}
+
+                    {active === "customers" && <Customers />}
+                    {active === "packages" && <Packages />}
+                    {active === "users" && <Users />}
+                    {active === "billing" && <Billing />}
+                </div>
             </div>
 
         </div>
