@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import moment from 'moment';
+import AllCustomers from './AllCustomers';
 
 const Billing = () => {
 
@@ -11,6 +12,10 @@ const Billing = () => {
     const [guid, setGuid] = useState('');
     const [invoices, setInvoices] = useState(null);
     const handleClose = () => setDisplayAlertMessage(false);
+    /********************************************************************************************************************/
+    const handleImportCustomer = (guidValue) => {
+        setGuid(guidValue);
+    };
     /********************************************************************************************************************/
     const getInvoices = useCallback(async (custId) => {
         if (!custId) {
@@ -29,7 +34,8 @@ const Billing = () => {
             const data = await res.json();
             setInvoices(data);
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
@@ -55,11 +61,18 @@ const Billing = () => {
             }
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
     }, [guid, getInvoices]);
+    /********************************************************************************************************************/
+    useEffect(() => {
+        if (guid) {
+            getCustomer();
+        }
+    }, [guid, getCustomer]);
     /********************************************************************************************************************/
     const clearForm = () => {
         setGuid('');
@@ -95,6 +108,8 @@ const Billing = () => {
 
                 <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >חשבוניות</h4>
 
+                <AllCustomers onImportCustomer={handleImportCustomer} />
+
                 <div className="card">
                     <div className="card-body p-3">
                         <h5 style={{ color: "#00adee" }}>חשבוניות ללקוח</h5>
@@ -124,7 +139,7 @@ const Billing = () => {
                                         onClick={getCustomer}
                                         className="btn"
                                         style={{ backgroundColor: "#00adee", color: "white" }}>
-                                        מצא חשבוניות ללקוח
+                                        חיפוש
                                     </button>
 
                                     <button type="button" className="btn ms-2 btn-secondary me-2" onClick={clearForm}>

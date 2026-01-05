@@ -169,8 +169,7 @@ router.post("/cloudServer/login", async (req, res) => {
                 const waitSec = Math.ceil((BLOCK_TIME - timePassed) / 1000);
                 return res.status(429).json({
                     success: false,
-                    message: `יותר מדי ניסיונות שגויים. יש לנסות שוב בעוד ${waitSec} שניות`,
-                    emessage: `Too many failed attempts. Try again in ${waitSec}s.`
+                    message: `יותר מדי ניסיונות שגויים. יש לנסות שוב בעוד ${waitSec} שניות`
                 });
             } else {
                 delete loginAttempts[attemptKey];
@@ -204,8 +203,7 @@ router.post("/cloudServer/login", async (req, res) => {
 
             return res.status(401).json({
                 success: false,
-                message: `אחד מפרטי הכניסה שגוי. נותנרו ${attemptsLeft} ניסיונות`,
-                emessage: `Invalid credentials. ${attemptsLeft} attempt(s) left`
+                message: `אחד מפרטי הכניסה שגוי. נותנרו ${attemptsLeft} ניסיונות`
             });
         }
 
@@ -343,23 +341,12 @@ router.get('/cloudServer/getCustomers', async (req, res) => {
         const customer = await pool.request()
             .input('guid', sql.NVarChar, guid)
             .query(` 
-                SELECT 
-                ADDRESS,
-                PHONE,
-                CUSTDES,
-                ZIP,
-                ACCNAME,
-                COUNTRYNAME,
-                WTAXNUM,
-                VATNUM,
-                CITY,
-                ADDRESS2,
-                ADDRESS3,
-                EMAIL,
-                PACKAGE,
-                CUST,
-                GUID
+  				SELECT 
+                ADDRESS, CUSTOMERS.PHONE, CUSTOMERS.CUSTDES, CUSTOMERS.ZIP, CUSTOMERS.ACCNAME, CUSTOMERS.COUNTRYNAME, 
+				CUSTOMERS.WTAXNUM, CUSTOMERS.VATNUM, CUSTOMERS.CITY, CUSTOMERS.ADDRESS2, CUSTOMERS.ADDRESS3, CUSTOMERS.EMAIL,
+				PACKAGES.DES, PACKAGES.PRICE, CUSTOMERS.CUST, CUSTOMERS.GUID
                 FROM CUSTOMERS
+				JOIN PACKAGES ON CUSTOMERS.PACKAGE = PACKAGES.PACKAGE
                 WHERE CUST <> 0;
                 `);
 

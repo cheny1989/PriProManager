@@ -80,7 +80,8 @@ const Packages = () => {
             setPackageData(data);
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         }
     }, []);
     /********************************************************************************************************************/

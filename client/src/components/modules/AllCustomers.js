@@ -8,6 +8,7 @@ const AllCustomers = ({ onImportCustomer }) => {
     const [alertMessageBody, setAlertMessageBody] = useState('');
     const [loading, setLoading] = useState(false);
     const handleClose = () => setDisplayAlertMessage(false);
+    const [customerFilter, setCustomerFilter] = useState("");
     /********************************************************************************************************************/
     const getAllCustomers = useCallback(async () => {
 
@@ -27,7 +28,8 @@ const AllCustomers = ({ onImportCustomer }) => {
                 setAllCustomers(data)
             }
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
@@ -35,10 +37,22 @@ const AllCustomers = ({ onImportCustomer }) => {
     /********************************************************************************************************************/
     const clearForm = () => {
         setAllCustomers(null);
+        setCustomerFilter("");
     }
     /********************************************************************************************************************/
+    const filteredCustomers = (allCustomers ?? []).filter((c) => {
+        const q = customerFilter.trim().toLowerCase();
+        if (!q) return true;
+
+        return (
+            String(c.CUSTDES ?? "").toLowerCase().includes(q) ||
+            String(c.CUST ?? "").toLowerCase().includes(q) ||
+            String(c.GUID ?? "").toLowerCase().includes(q)
+        );
+    });
+    /********************************************************************************************************************/
     return (
-        <div className="p-3 m-3 card mb-4">
+        <div className="p-3 card mb-4">
             <div className='card-body'>
 
                 {/* Loading */}
@@ -82,8 +96,31 @@ const AllCustomers = ({ onImportCustomer }) => {
                         נקה טופס
                     </button>
 
-                    <div className="ms-auto text-muted small">
-                        נמצאו: <b>{allCustomers?.length ?? 0}</b> לקוחות
+                    <div className="ms-auto d-flex align-items-center gap-2">
+                        <div className="input-group" style={{ width: 400 }}>
+                            <input
+                                className="form-control"
+                                placeholder="חיפוש לקוח..."
+                                value={customerFilter}
+                                onChange={(e) => setCustomerFilter(e.target.value)}
+                            />
+                            <span className="input-group-text rounded">
+                                <i className="bi bi-search"></i>
+                            </span>
+                            {customerFilter && (
+                                <button
+                                    type="button"
+                                    className="btn btn-outline-secondary rounded"
+                                    onClick={() => setCustomerFilter("")}
+                                >
+                                    <i className='bi bi-x-circle'></i>
+                                </button>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="text-muted small">
+                        מוצגים: <b>{filteredCustomers.length}</b> / {allCustomers?.length ?? 0}
                     </div>
                 </div>
 
@@ -97,18 +134,20 @@ const AllCustomers = ({ onImportCustomer }) => {
                                 <th>אימייל</th>
                                 <th>טלפון</th>
                                 <th>מספר חברה</th>
+                                <th>חבילה</th>
                                 <th style={{ width: 120 }} className="text-end">פעולה</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            {(allCustomers ?? []).map((cst, index) => (
+                            {(filteredCustomers ?? []).map((cst, index) => (
                                 <tr key={cst.CUST}>
                                     <td className="text-muted">{index + 1}</td>
                                     <td className="fw-semibold">{cst.CUSTDES}</td>
                                     <td className="fw-semibold">{cst.EMAIL}</td>
                                     <td className="fw-semibold">{cst.PHONE}</td>
                                     <td className="fw-semibold">{cst.WTAXNUM}</td>
+                                    <td className="fw-semibold">{cst.DES} [{Number(cst.PRICE).toLocaleString()} ₪]</td>
                                     <td className="text-end">
                                         <button
                                             type="button"
@@ -116,7 +155,7 @@ const AllCustomers = ({ onImportCustomer }) => {
                                             className="btn btn-sm btn-outline-primary importCust"
                                             style={{ borderColor: "#00adee", color: "#00adee" }}
                                         >
-                                            <i className="bi bi-box-arrow-in-down-left me-1"></i>
+                                            <i className="bi bi-box-arrow-in-down-left ms-1"></i>
                                             ייבא
                                         </button>
                                     </td>
@@ -125,7 +164,7 @@ const AllCustomers = ({ onImportCustomer }) => {
 
                             {!allCustomers?.length && (
                                 <tr>
-                                    <td colSpan={3} className="text-center text-muted py-4">
+                                    <td colSpan={6} className="text-center text-muted py-4">
                                         אין נתונים להצגה
                                     </td>
                                 </tr>

@@ -245,7 +245,7 @@ function Login() {
                             disabled={loading}
                             style={{ backgroundColor: "#00adee", borderColor: "#00adee" }}
                         >
-                            {loading ? 'טוען' : 'לחץ להתחברות'}
+                            {loading ? 'טוען' : 'התחברות'}
                         </button>
 
                         {/* Result */}

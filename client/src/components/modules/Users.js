@@ -29,7 +29,8 @@ const Users = () => {
             setCustomers(data);
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         }
     }, []);
     /********************************************************************************************************************/
@@ -111,9 +112,7 @@ const Users = () => {
                 setDisplayAlertMessage(true);
             }
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
-            setAlertMessage("❌ תקלה בביצוע הפעולה");
-            setAlertMessageBody(err.message || "Unknown error");
+            setAlertMessage("❌ Something went wrong:", err);
             setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
@@ -151,9 +150,6 @@ const Users = () => {
         const hasNumbers = number.test(resetPassword);
         const hasSpecialChar = specialChar.test(resetPassword);
         const hasMinLength = resetPassword.length >= minLength;
-
-        console.log(hasSpecialChar)
-
 
         if (!hasLowercase || !hasUppercase || !hasNumbers || !hasSpecialChar || !hasMinLength) {
             setAlertMessage("❌ הסיסמה החדשה לא עומדת בדרישות האבטחה");
@@ -204,9 +200,7 @@ const Users = () => {
                 setDisplayAlertMessage(true);
             }
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
-            setAlertMessage("❌ תקלה בביצוע הפעולה");
-            setAlertMessageBody(err.message || "Unknown error");
+            setAlertMessage("❌ Something went wrong:", err);
             setDisplayAlertMessage(true);
         } finally {
             setLoading(false);

@@ -170,10 +170,11 @@ function HomePage({ setIsLoggedIn, user }) {
                 <div className="p-3">
                     {active === "" ?
                         <div
-                            className="text-center fs-4 fw-bold text-secondary mt-5"
+                            className="text-center fs-4 fw-bold mt-5"
+                            style={{color: "#00adee"}}
                         > 
-                            ברוכים הבאים למערכת ניהול PriPro Manager. <br />
-                            אנא בחרו קטגוריה מהתפריט למעלה כדי להתחיל. </div>
+                            ברוכים הבאים למערכת ניהול PriPro Manager<br />
+                            אנא בחרו קטגוריה מהתפריט למעלה כדי להתחיל</div>
                         : null}
 
                     {active === "customers" && <Customers />}

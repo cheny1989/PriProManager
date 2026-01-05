@@ -83,11 +83,18 @@ const Customers = () => {
             }
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
     }, [guid]);
+    /********************************************************************************************************************/
+    useEffect(() => {
+        if (guid) {
+            getCustomer();
+        }
+    }, [guid, getCustomer]);
     /********************************************************************************************************************/
     const clearForm = () => {
         setAddress('');
@@ -117,7 +124,8 @@ const Customers = () => {
             setPackageData(data);
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         }
     }, []);
     /********************************************************************************************************************/
@@ -161,11 +169,13 @@ const Customers = () => {
                 setDisplayAlertMessage(true);
 
             } else {
-                console.warn("❌ Something went wrong", data.message);
+                setAlertMessage("❌ Something went wrong", data.message);
+                setDisplayAlertMessage(true);
             }
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
@@ -209,11 +219,13 @@ const Customers = () => {
                 setDisplayAlertMessage(true);
 
             } else {
-                console.warn("❌ Something went wrong", data.message);
+                setAlertMessage("❌ Something went wrong", data.message);
+                setDisplayAlertMessage(true);
             }
 
         } catch (err) {
-            console.warn("❌ Something went wrong:", err);
+            setAlertMessage("❌ Something went wrong:", err);
+            setDisplayAlertMessage(true);
         } finally {
             setLoading(false);
         }
@@ -246,6 +258,8 @@ const Customers = () => {
                 </Modal>
 
                 <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >לקוחות</h4>
+
+                <AllCustomers onImportCustomer={handleImportCustomer} />
 
                 <div className="card">
                     <div className="card-body p-3">
@@ -387,8 +401,6 @@ const Customers = () => {
                     </div>
                 </div>
             </div>
-
-            <AllCustomers onImportCustomer={handleImportCustomer}/>
         </div>
     );
 };
