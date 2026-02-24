@@ -52,7 +52,7 @@ router.post('/cloudServer/CustomerUser', async (req, res) => {
 
         const exists = r.recordset?.[0];
 
-        return res.json({
+        return res.status(200).json({
             user_exists: exists ? true : false,
             cust_des: exists ? exists.cust_des : null
         });
@@ -64,7 +64,7 @@ router.post('/cloudServer/CustomerUser', async (req, res) => {
     }
 });
 /*********************************************************************************************************************/
-router.post("/cloudServer/createNewUser", async (req, res) => {
+router.post("/cloudServer/createUser", async (req, res) => {
     const SALT_ROUNDS = 12;
 
     try {
@@ -96,13 +96,13 @@ router.post("/cloudServer/createNewUser", async (req, res) => {
     `);
 
         const ok = result?.rowsAffected?.[0] === 1;
-        return res.json({ success: ok });
+        return res.status(200).json({ success: ok });
     } catch (err) {
         if (err?.number === 2627 || err?.number === 2601) {
             return res.status(409).json({ success: false, message: "Username already exists" });
         }
 
-        console.error("Error createNewUser:", err);
+        console.error("Error createUser:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
 });
@@ -121,31 +121,30 @@ router.put("/cloudServer/updatePassword", async (req, res) => {
             });
         }
 
-        const { username, password, cust } = dataArray;
-
+        const { userId, password, cust } = dataArray;
 
         const passhash = await bcrypt.hash(password, SALT_ROUNDS);
 
         const pool = await getPoolByKey("PriProProduction", config);
 
         const request = pool.request();
-        request.input("username", sql.NVarChar(20), username);
+        request.input("user", sql.Int, userId)
         request.input("passhash", sql.NVarChar(127), passhash);
         request.input("cust", sql.Int, cust);
 
         const result = await request.query(`
       UPDATE dbo.USERS SET PASSHASH = @passhash
-      WHERE USERNAME = @username AND CUST = @cust;
+      WHERE [USER] = @user AND CUST = @cust;
     `);
 
         const ok = result?.rowsAffected?.[0] === 1;
-        return res.json({ success: ok });
+        return res.status(200).json({ success: ok });
     } catch (err) {
         if (err?.number === 2627 || err?.number === 2601) {
             return res.status(409).json({ success: false, message: "Username already exists" });
         }
 
-        console.error("Error createNewUser:", err);
+        console.error("Error createUser:", err);
         return res.status(500).json({ success: false, message: "Server error" });
     }
 });
@@ -183,7 +182,8 @@ router.post("/cloudServer/login", async (req, res) => {
         const dbRes = await request.query(`
         SELECT TOP 1 USERNAME, PASSHASH, 
         CUSTOMERS.CUST AS user_id,
-        USERS.GUID AS user_guid
+        USERS.GUID AS user_guid,
+        USERS.ACTIVE AS user_active
         FROM dbo.USERS
         JOIN CUSTOMERS ON USERS.CUST = CUSTOMERS.CUST
         WHERE USERNAME = @user
@@ -207,15 +207,27 @@ router.post("/cloudServer/login", async (req, res) => {
             });
         }
 
+        const active = Number(userLogin.user_active);
+        if (active === 0) {
+            return res.status(401).json({
+                success: false,
+                message: "שם משתמש לא פעיל: " + userLogin.USERNAME
+            });
+        }
+
         delete loginAttempts[attemptKey];
 
         const token = jwt.sign(
-            { user: userLogin.USERNAME, user_id: userLogin.user_id },
+            {
+                user: userLogin.USERNAME,
+                user_id: userLogin.user_id,
+                user_guid: userLogin.user_guid,
+            },
             JWT_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "15m" } /** or "1h" **/
         );
 
-        return res.json({
+        return res.status(200).json({
             success: true,
             userLogin: userLogin.USERNAME,
             user_id: userLogin.user_id,
@@ -236,7 +248,7 @@ router.post('/cloudServer/logout', (req, res) => {
     if (token) {
         blacklistedTokens.add(token);
     }
-    res.json({ success: true, message: "Logged out successfully" });
+    res.status(200).json({ success: true, message: "Logged out successfully" });
 });
 
 /*********************************************************************************************************************/
@@ -258,9 +270,13 @@ const authenticateToken = (req, res, next) => {
 };
 /*********************************************************************************************************************/
 router.get('/cloudServer/protected', authenticateToken, (req, res) => {
-    res.json({
+    res.status(200).json({
         success: true,
-        message: `Hello ${req.user.username}, you accessed a protected route!`
+        message: `Hello ${req.user.user}, you accessed a protected route!`,
+        user: req.user.user,
+        user_id: req.user.user_id,
+        user_guid: req.user.user_guid,
+        token: req.user.token
     });
 });
 /*********************************************************************************************************************/
@@ -275,9 +291,9 @@ router.get('/cloudServer/packages', async (req, res) => {
             .query(`SELECT PACKAGE, DES, EDES, PRICE, [TRANSACTION] FROM PACKAGES WHERE PACKAGE <> 0;`);
 
         if (package.recordset.length > 0) {
-            res.json(package.recordset);
+            res.status(200).json(package.recordset);
         } else {
-            res.json([]);
+            res.status(200).json([]);
         }
 
     } catch (err) {
@@ -321,7 +337,7 @@ router.put("/cloudServer/updatePackages/:packageId", async (req, res) => {
         const row = result.recordset?.[0];
         if (!row) return res.status(404).json({ success: false, message: "Package not found" });
 
-        return res.json({ success: true, row });
+        return res.status(200).json({ success: true, row });
 
     } catch (err) {
         console.error("Error updating package:", err);
@@ -333,13 +349,11 @@ router.put("/cloudServer/updatePackages/:packageId", async (req, res) => {
 /*********************************************************************************************************************/
 router.get('/cloudServer/getCustomers', async (req, res) => {
 
-    const { guid } = req.params;
 
     try {
         const pool = await getPoolByKey("PriProProduction", config);
 
         const customer = await pool.request()
-            .input('guid', sql.NVarChar, guid)
             .query(` 
   				SELECT 
                 ADDRESS, CUSTOMERS.PHONE, CUSTOMERS.CUSTDES, CUSTOMERS.ZIP, CUSTOMERS.ACCNAME, CUSTOMERS.COUNTRYNAME, 
@@ -351,9 +365,9 @@ router.get('/cloudServer/getCustomers', async (req, res) => {
                 `);
 
         if (customer.recordset.length > 0) {
-            res.json(customer.recordset);
+            res.status(200).json(customer.recordset);
         } else {
-            res.json([]);
+            res.status(200).json([]);
         }
 
     } catch (err) {
@@ -390,9 +404,9 @@ router.get('/cloudServer/getAllCustomer', async (req, res) => {
                 `);
 
         if (customer.recordset.length > 0) {
-            res.json(customer.recordset);
+            res.status(200).json(customer.recordset);
         } else {
-            res.json([]);
+            res.status(200).json([]);
         }
 
     } catch (err) {
@@ -425,15 +439,16 @@ router.get('/cloudServer/getCustomer/:guid', async (req, res) => {
                 ADDRESS3,
                 EMAIL,
                 PACKAGE,
-                CUST
+                CUST,
+                ACTIVE
                 FROM CUSTOMERS
                 WHERE GUID = @guid;
                 `);
 
         if (customer.recordset.length > 0) {
-            res.json(customer.recordset);
+            res.status(200).json(customer.recordset);
         } else {
-            res.json([]);
+            res.status(200).json([]);
         }
 
     } catch (err) {
@@ -524,7 +539,8 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
             address, address2, address3,
             city, zip, countryname,
             phone, email,
-            wtaxnum, vatnum, packagecust
+            wtaxnum, vatnum, packagecust,
+            active
         } = dataArray;
 
         if (!cust) {
@@ -548,6 +564,7 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
             .input("wtaxnum", sql.NVarChar(50), wtaxnum ?? null)
             .input("vatnum", sql.NVarChar(50), vatnum ?? null)
             .input("packagecust", sql.Int(50), packagecust ?? null)
+            .input("active", sql.Bit, active ?? false)
             .query(`
         UPDATE CUSTOMERS
         SET
@@ -563,11 +580,12 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
           EMAIL = @email,
           WTAXNUM = @wtaxnum,
           VATNUM = @vatnum,
-          PACKAGE = @packagecust
+          PACKAGE = @packagecust,
+          ACTIVE = @active
           WHERE CUST = @cust;
 
         SELECT CUST, ACCNAME, CUSTDES, ADDRESS, ADDRESS2, ADDRESS3, CITY, ZIP, COUNTRYNAME,
-               PHONE, EMAIL, WTAXNUM, VATNUM, PACKAGE
+               PHONE, EMAIL, WTAXNUM, VATNUM, PACKAGE, ACTIVE
         FROM CUSTOMERS
         WHERE CUST = @cust;
       `);
@@ -577,7 +595,7 @@ router.put("/cloudServer/updateCustomer", async (req, res) => {
             return res.status(404).json({ success: false, message: "Customer not found" });
         }
 
-        return res.json({ success: true, customer: updated });
+        return res.status(200).json({ success: true, customer: updated });
 
     } catch (err) {
         console.error("Error updateCustomer:", err);
@@ -609,14 +627,75 @@ router.get('/cloudServer/getInvoices/:custId', async (req, res) => {
                 `);
 
         if (customer.recordset.length > 0) {
-            res.json(customer.recordset);
+            res.status(200).json(customer.recordset);
         } else {
-            res.json([]);
+            res.status(200).json([]);
         }
 
     } catch (err) {
         console.error("Error getting forms:", err);
         res.status(500).json({ message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
+router.get('/cloudServer/getUsersByCust/:cust', async (req, res) => {
+
+    const { cust } = req.params;
+
+    if (!cust) {
+        return res.status(400).json({ message: "Missing cust in request body" });
+    }
+
+    try {
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const customer = await pool.request()
+            .input('cust', sql.Int, cust)
+            .query(`SELECT [USER], USERNAME, ACTIVE FROM USERS WHERE CUST = @cust;`);
+
+        if (customer.recordset.length > 0) {
+            res.status(200).json(customer.recordset);
+        } else {
+            res.status(200).json([]);
+        }
+
+    } catch (err) {
+        console.error("Error getting forms:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+});
+/*********************************************************************************************************************/
+router.put("/cloudServer/updateUser", async (req, res) => {
+
+    try {
+
+        const dataArray = req.body?.dataArray;
+
+        if (!dataArray) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing dataArray in request body"
+            });
+        }
+
+        const { userId, active } = dataArray;
+
+        const pool = await getPoolByKey("PriProProduction", config);
+
+        const result = await pool.request()
+            .input("user", sql.Int, userId)
+            .input("active", sql.Bit, active ?? false)
+            .query(`UPDATE USERS SET ACTIVE = @active WHERE [USER] = @user`);
+
+        if ((result.rowsAffected?.[0] ?? 0) === 0) {
+            return res.status(404).json({ success: false, message: "User not found" });
+        }
+
+        return res.status(200).json({ success: true });
+
+    } catch (err) {
+        console.error("Error updating package:", err);
+        return res.status(500).json({ success: false, message: "Server error" });
     }
 });
 /*********************************************************************************************************************/

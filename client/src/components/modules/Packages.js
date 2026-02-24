@@ -1,15 +1,25 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { CenteredMessageDialog } from "../CenteredMessageDialog";
 
 const Packages = () => {
     const [packageData, setPackageData] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [displayAlertMessage, setDisplayAlertMessage] = useState(false);
-    const [alertMessage, setAlertMessage] = useState('');
-    const [alertMessageBody, setAlertMessageBody] = useState('');
     const [saving, setSaving] = useState({});
-    const handleClose = () => setDisplayAlertMessage(false);
     const [isChange, setIsChange] = useState(false);
+
+    // Messages
+    const [displayMessage, setDisplayMessage] = useState(false);
+    const [bodyMessage, setBodyMessage] = useState("");
+    const [titleMessage, setTitleMessage] = useState("");
+    const [colorMessage, setColorMessage] = useState("");
+    const handleCloseDisplayMessage = () => setDisplayMessage(false);
+    /********************************************************************************************************************/
+    const cleanMessage = () => {
+        setTitleMessage("");
+        setBodyMessage("");
+        setColorMessage("");
+        setDisplayMessage("");
+    }
     /********************************************************************************************************************/
     const onChangeRow = (pkgId, field, value, type) => {
 
@@ -48,13 +58,18 @@ const Packages = () => {
 
             const data = await res.json();
             if (res.ok) {
-                setAlertMessage("✅ החבילה עודכנה בהצלחה");
-                setAlertMessageBody("ניתן לסגור הודעה זו");
-                setDisplayAlertMessage(true);
+                setTitleMessage("החבילה עודכנה בהצלחה");
+                setBodyMessage("ניתן להמשיך");
+                setColorMessage("success");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
+                return;
             } else {
-                setAlertMessage("❌ משהו השתבש בעדכון החבילה");
-                setAlertMessageBody(data?.message || "אנא נסה שוב מאוחר יותר");
-                setDisplayAlertMessage(true);
+                setTitleMessage("משהו השתבש");
+                setBodyMessage("יש לנסות שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
             }
 
             if (data?.row) {
@@ -72,6 +87,9 @@ const Packages = () => {
     };
     /********************************************************************************************************************/
     const getPackages = useCallback(async () => {
+
+        setLoading(true);
+
         try {
             const res = await fetch(`/cloudServer/packages`);
             if (!res.ok) throw new Error(`Failed to fetch: ${res.status}`);
@@ -80,8 +98,14 @@ const Packages = () => {
             setPackageData(data);
 
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
+        } finally {
+            setLoading(false);
         }
     }, []);
     /********************************************************************************************************************/
@@ -102,17 +126,14 @@ const Packages = () => {
                     </div>
                 )}
 
-                <Modal show={displayAlertMessage} onHide={handleClose} centered dir="rtl">
-                    <Modal.Header>
-                        <Modal.Title><div className='fw-bold'>{alertMessage}</div></Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>{alertMessageBody}</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>
-                            סגירה
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                {/* Message - Start */}
+                <CenteredMessageDialog
+                    show={displayMessage}
+                    title={titleMessage}
+                    bodyMessage={bodyMessage}
+                    colorMessage={colorMessage}
+                    onClose={handleCloseDisplayMessage}
+                />
 
                 <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >חבילות</h4>
 
@@ -186,7 +207,7 @@ const Packages = () => {
                                         </tr>
                                     ))}
 
-                                    {!packageData?.length && (
+                                    {!packageData?.length && !loading && (
                                         <tr>
                                             <td colSpan={5} className="text-center text-secondary">
                                                 לא נמצאו חבילות להצגה

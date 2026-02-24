@@ -1,17 +1,26 @@
-import { useState, useCallback, useEffect } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { useState, useCallback } from 'react';
 import moment from 'moment';
 import AllCustomers from './AllCustomers';
+import { CenteredMessageDialog } from "../CenteredMessageDialog";
 
 const Billing = () => {
-
-    const [displayAlertMessage, setDisplayAlertMessage] = useState(false);
-    const [alertMessage, setAlertMessage] = useState('');
-    const [alertMessageBody, setAlertMessageBody] = useState('');
     const [loading, setLoading] = useState(false);
     const [guid, setGuid] = useState('');
     const [invoices, setInvoices] = useState(null);
-    const handleClose = () => setDisplayAlertMessage(false);
+
+    // Messages
+    const [displayMessage, setDisplayMessage] = useState(false);
+    const [bodyMessage, setBodyMessage] = useState("");
+    const [titleMessage, setTitleMessage] = useState("");
+    const [colorMessage, setColorMessage] = useState("");
+    const handleCloseDisplayMessage = () => setDisplayMessage(false);
+    /********************************************************************************************************************/
+    const cleanMessage = () => {
+        setTitleMessage("");
+        setBodyMessage("");
+        setColorMessage("");
+        setDisplayMessage("");
+    }
     /********************************************************************************************************************/
     const handleImportCustomer = (guidValue) => {
         setGuid(guidValue);
@@ -19,9 +28,11 @@ const Billing = () => {
     /********************************************************************************************************************/
     const getInvoices = useCallback(async (custId) => {
         if (!custId) {
-            setAlertMessage("❌ יש לספק מזהה לקוח תקין לפני שליפת חשבוניות");
-            setAlertMessageBody("אנא בדוק את המזהה ונסה שוב");
-            setDisplayAlertMessage(true);
+            setTitleMessage("יש לספק מזהה לקוח תקין לפני שליפת חשבוניות");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
             return;
         }
 
@@ -34,8 +45,12 @@ const Billing = () => {
             const data = await res.json();
             setInvoices(data);
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
@@ -51,9 +66,11 @@ const Billing = () => {
 
             const data = await res.json();
             if (data.length === 0) {
-                setAlertMessage("❌ לא נמצא לקוח עם המזהה שסופק");
-                setAlertMessageBody("אנא בדוק את המזהה ונסה שוב");
-                setDisplayAlertMessage(true);
+                setTitleMessage("לא נמצא לקוח עם המזהה שסופק");
+                setBodyMessage("יש לנסות שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
                 return;
             } else {
                 const custValue = data[0]?.CUST ?? null;
@@ -61,18 +78,22 @@ const Billing = () => {
             }
 
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
     }, [guid, getInvoices]);
     /********************************************************************************************************************/
-    useEffect(() => {
-        if (guid) {
-            getCustomer();
-        }
-    }, [guid, getCustomer]);
+    // useEffect(() => {
+    //     if (guid) {
+    //         getCustomer();
+    //     }
+    // }, [guid, getCustomer]);
     /********************************************************************************************************************/
     const clearForm = () => {
         setGuid('');
@@ -94,21 +115,21 @@ const Billing = () => {
                     </div>
                 )}
 
-                <Modal show={displayAlertMessage} onHide={handleClose} centered dir="rtl">
-                    <Modal.Header>
-                        <Modal.Title><div className='fw-bold'>{alertMessage}</div></Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>{alertMessageBody}</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>
-                            סגירה
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                {/* Message - Start */}
+                <CenteredMessageDialog
+                    show={displayMessage}
+                    title={titleMessage}
+                    bodyMessage={bodyMessage}
+                    colorMessage={colorMessage}
+                    onClose={handleCloseDisplayMessage}
+                />
 
                 <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >חשבוניות</h4>
 
-                <AllCustomers onImportCustomer={handleImportCustomer} />
+                <AllCustomers
+                    onImportCustomer={handleImportCustomer}
+                    onClearParent={clearForm}
+                />
 
                 <div className="card">
                     <div className="card-body p-3">
@@ -138,6 +159,7 @@ const Billing = () => {
                                         type="button"
                                         onClick={getCustomer}
                                         className="btn"
+                                        disabled={!guid}
                                         style={{ backgroundColor: "#00adee", color: "white" }}>
                                         חיפוש
                                     </button>

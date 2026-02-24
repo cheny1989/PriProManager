@@ -1,14 +1,24 @@
 import { useState, useCallback } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import { CenteredMessageDialog } from "../CenteredMessageDialog";
 
-const AllCustomers = ({ onImportCustomer }) => {
+const AllCustomers = ({ onImportCustomer, onClearParent }) => {
     const [allCustomers, setAllCustomers] = useState(null);
-    const [displayAlertMessage, setDisplayAlertMessage] = useState(false);
-    const [alertMessage, setAlertMessage] = useState('');
-    const [alertMessageBody, setAlertMessageBody] = useState('');
     const [loading, setLoading] = useState(false);
-    const handleClose = () => setDisplayAlertMessage(false);
     const [customerFilter, setCustomerFilter] = useState("");
+
+    // Messages
+    const [displayMessage, setDisplayMessage] = useState(false);
+    const [bodyMessage, setBodyMessage] = useState("");
+    const [titleMessage, setTitleMessage] = useState("");
+    const [colorMessage, setColorMessage] = useState("");
+    const handleCloseDisplayMessage = () => setDisplayMessage(false);
+    /********************************************************************************************************************/
+    const cleanMessage = () => {
+        setTitleMessage("");
+        setBodyMessage("");
+        setColorMessage("");
+        setDisplayMessage("");
+    }
     /********************************************************************************************************************/
     const getAllCustomers = useCallback(async () => {
 
@@ -20,16 +30,22 @@ const AllCustomers = ({ onImportCustomer }) => {
 
             const data = await res.json();
             if (data.length === 0) {
-                setAlertMessage("❌ לא נמצא לקוח עם המזהה שסופק");
-                setAlertMessageBody("אנא בדוק את המזהה ונסה שוב");
-                setDisplayAlertMessage(true);
+                setTitleMessage("לא נמצא לקוח עם המזהה שסופק");
+                setBodyMessage("אנא בדוק את המזהה ונסה שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
                 return;
             } else {
                 setAllCustomers(data)
             }
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
@@ -38,6 +54,7 @@ const AllCustomers = ({ onImportCustomer }) => {
     const clearForm = () => {
         setAllCustomers(null);
         setCustomerFilter("");
+        onClearParent?.();
     }
     /********************************************************************************************************************/
     const filteredCustomers = (allCustomers ?? []).filter((c) => {
@@ -64,17 +81,14 @@ const AllCustomers = ({ onImportCustomer }) => {
                     </div>
                 )}
 
-                <Modal show={displayAlertMessage} onHide={handleClose} centered dir="rtl">
-                    <Modal.Header>
-                        <Modal.Title><div className='fw-bold'>{alertMessage}</div></Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>{alertMessageBody}</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>
-                            סגירה
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                {/* Message - Start */}
+                <CenteredMessageDialog
+                    show={displayMessage}
+                    title={titleMessage}
+                    bodyMessage={bodyMessage}
+                    colorMessage={colorMessage}
+                    onClose={handleCloseDisplayMessage}
+                />
 
                 <div className="d-flex flex-wrap gap-2 align-items-center mb-3">
                     <button

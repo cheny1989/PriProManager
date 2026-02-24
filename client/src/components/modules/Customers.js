@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Modal, Button } from 'react-bootstrap';
 import AllCustomers from './AllCustomers';
+import { CenteredMessageDialog } from "../CenteredMessageDialog";
 
 const Customers = () => {
     const [address, setAddress] = useState('');
@@ -17,21 +17,32 @@ const Customers = () => {
     const [email, setEmail] = useState('');
     const [packagecust, setPackagecust] = useState(0);
     const [packageData, setPackageData] = useState([]);
-    const [displayAlertMessage, setDisplayAlertMessage] = useState(false);
-    const [alertMessage, setAlertMessage] = useState('');
-    const [alertMessageBody, setAlertMessageBody] = useState('');
+    const [active, setActive] = useState(true);
     const [loading, setLoading] = useState(false);
-    const handleClose = () => setDisplayAlertMessage(false);
     const [guid, setGuid] = useState('');
     const [cust, setCust] = useState(null);
     const [isDisable, setIsDisable] = useState(false);
+
+    // Messages
+    const [displayMessage, setDisplayMessage] = useState(false);
+    const [bodyMessage, setBodyMessage] = useState("");
+    const [titleMessage, setTitleMessage] = useState("");
+    const [colorMessage, setColorMessage] = useState("");
+    const handleCloseDisplayMessage = () => setDisplayMessage(false);
+    /********************************************************************************************************************/
+    const cleanMessage = () => {
+        setTitleMessage("");
+        setBodyMessage("");
+        setColorMessage("");
+        setDisplayMessage("");
+    }
     /********************************************************************************************************************/
     const handleImportCustomer = (guidValue) => {
         setGuid(guidValue);
     };
     /********************************************************************************************************************/
-    const markDirty = (setter) => (e) => {
-        setter(e.target.value);
+    const markDirty = (setter, parser = (v) => v) => (e) => {
+        setter(parser(e.target.value));
         setIsDisable(true);
     };
     /********************************************************************************************************************/
@@ -60,9 +71,11 @@ const Customers = () => {
 
             const data = await res.json();
             if (data.length === 0) {
-                setAlertMessage("❌ לא נמצא לקוח עם המזהה שסופק");
-                setAlertMessageBody("אנא בדוק את המזהה ונסה שוב");
-                setDisplayAlertMessage(true);
+                setTitleMessage("לא נמצא לקוח עם המזהה שסופק");
+                setBodyMessage("אנא בדוק את המזהה ונסה שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
                 return;
             } else {
                 const customer = data[0];
@@ -80,21 +93,26 @@ const Customers = () => {
                 setCountryname(customer.COUNTRYNAME || '');
                 setPackagecust(customer.PACKAGE || 0);
                 setCust(customer.CUST || null);
+                setActive(customer.ACTIVE || false)
             }
 
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
     }, [guid]);
     /********************************************************************************************************************/
-    useEffect(() => {
-        if (guid) {
-            getCustomer();
-        }
-    }, [guid, getCustomer]);
+    // useEffect(() => {
+    //     if (guid) {
+    //         getCustomer();
+    //     }
+    // }, [guid, getCustomer]);
     /********************************************************************************************************************/
     const clearForm = () => {
         setAddress('');
@@ -113,6 +131,7 @@ const Customers = () => {
         setCust(null);
         setGuid('');
         setIsDisable(false);
+        setActive(true);
     }
     /********************************************************************************************************************/
     const getPackages = useCallback(async () => {
@@ -124,8 +143,12 @@ const Customers = () => {
             setPackageData(data);
 
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         }
     }, []);
     /********************************************************************************************************************/
@@ -146,9 +169,11 @@ const Customers = () => {
         };
 
         if (!accname || !custdes || !phone || !email || !wtaxnum || !vatnum || !packagecust) {
-            setAlertMessage(" יש שדות חובה חסרים⚠️");
-            setAlertMessageBody("אנא מלא את כל השדות המסומנים בכוכבית אדומה");
-            setDisplayAlertMessage(true);
+            setTitleMessage("יש שדות חובה חסרים");
+            setBodyMessage("אנא מלא את כל השדות המסומנים בכוכבית אדומה");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
             setLoading(false);
             return;
         }
@@ -160,22 +185,31 @@ const Customers = () => {
                 body: JSON.stringify({ dataArray })
             });
 
-            const data = await res.json();
+            await res.json();
 
             if (res.ok) {
-                console.log("✅ Prefix created successfully:", data);
-                clearForm();
-                setAlertMessage("✅ הלקוח נוצר בהצלחה");
-                setDisplayAlertMessage(true);
-
+                setTitleMessage("הלקוח נוצר בהצלחה");
+                setBodyMessage("ניתן להמשיך");
+                setColorMessage("success");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
             } else {
-                setAlertMessage("❌ Something went wrong", data.message);
-                setDisplayAlertMessage(true);
+                setTitleMessage("משהו השתבש");
+                setBodyMessage("יש לנסות שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
+                setLoading(false);
+                return;
             }
 
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
@@ -192,14 +226,16 @@ const Customers = () => {
             phone, email,
             wtaxnum, vatnum,
             packagecust: Number(packagecust),
-            cust: Number(cust)
+            cust: Number(cust),
+            active: active
         };
 
         if (!accname || !custdes || !phone || !email || !wtaxnum || !vatnum || !packagecust || !cust) {
-            setAlertMessage(" יש שדות חובה חסרים⚠️");
-            setAlertMessageBody("אנא מלא את כל השדות המסומנים בכוכבית אדומה");
-            setDisplayAlertMessage(true);
-            setLoading(false);
+            setTitleMessage("יש שדות חובה חסרים");
+            setBodyMessage("אנא מלא את כל השדות המסומנים בכוכבית אדומה");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
             return;
         }
 
@@ -210,22 +246,30 @@ const Customers = () => {
                 body: JSON.stringify({ dataArray })
             });
 
-            const data = await res.json();
+            await res.json();
 
             if (res.ok) {
-                console.log("✅ Prefix created successfully:", data);
                 clearForm();
-                setAlertMessage("✅ הלקוח עודכן בהצלחה");
-                setDisplayAlertMessage(true);
-
+                setTitleMessage("הלקוח עודכן בהצלחה");
+                setBodyMessage("ניתן להמשיך");
+                setColorMessage("success");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
             } else {
-                setAlertMessage("❌ Something went wrong", data.message);
-                setDisplayAlertMessage(true);
+                setTitleMessage("משהו השתבש");
+                setBodyMessage("יש לנסות שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
+                return;
             }
-
         } catch (err) {
-            setAlertMessage("❌ Something went wrong:", err);
-            setDisplayAlertMessage(true);
+            setTitleMessage("משהו השתבש");
+            setBodyMessage("יש לנסות שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
         } finally {
             setLoading(false);
         }
@@ -245,21 +289,21 @@ const Customers = () => {
                     </div>
                 )}
 
-                <Modal show={displayAlertMessage} onHide={handleClose} centered dir="rtl">
-                    <Modal.Header>
-                        <Modal.Title><div className='fw-bold'>{alertMessage}</div></Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>{alertMessageBody}</Modal.Body>
-                    <Modal.Footer>
-                        <Button variant="secondary" onClick={handleClose}>
-                            סגירה
-                        </Button>
-                    </Modal.Footer>
-                </Modal>
+                {/* Message - Start */}
+                <CenteredMessageDialog
+                    show={displayMessage}
+                    title={titleMessage}
+                    bodyMessage={bodyMessage}
+                    colorMessage={colorMessage}
+                    onClose={handleCloseDisplayMessage}
+                />
 
                 <h4 className='mb-3 fw-bold' style={{ color: "#00adee" }} >לקוחות</h4>
 
-                <AllCustomers onImportCustomer={handleImportCustomer} />
+                <AllCustomers
+                    onImportCustomer={handleImportCustomer}
+                    onClearParent={clearForm}
+                />
 
                 <div className="card">
                     <div className="card-body p-3">
@@ -366,10 +410,22 @@ const Customers = () => {
                             <div className="col-md-4">
                                 <label className="form-label">סוג חבילה <span className='text-danger'>*</span></label>
                                 <select className="form-select mt-2" value={packagecust} onChange={markDirty(setPackagecust)}  >
-                                    <option disabled value="">בחירת חבילה</option>
+                                    <option value="">בחירת חבילה</option>
                                     {packageData.map((pkg) => (
                                         <option key={pkg.PACKAGE} value={pkg.PACKAGE}>{pkg.DES} - {Number(pkg.PRICE).toLocaleString()} ₪ - {pkg.TRANSACTION} פעולות</option>
                                     ))}
+                                </select>
+                            </div>
+
+                            <div className="col-md-4">
+                                <label className="form-label">פעיל?<span className='text-danger'>*</span></label>
+                                <select
+                                    className="form-select mt-2"
+                                    value={String(active)}
+                                    onChange={markDirty(setActive, (v) => v === "true")}
+                                >
+                                    <option value="true">פעיל</option>
+                                    <option value="false">לא פעיל</option>
                                 </select>
                             </div>
 

@@ -1,17 +1,69 @@
 import { useState, useEffect, useCallback } from "react";
 import logo from '../../src/logo.png'
 import HomePage from '../components/HomePage';
+import { CenteredMessageDialog } from "../components/CenteredMessageDialog";
 
 function Login() {
     /*********************************************************************************************************************/
     const [user, setUser] = useState("");
     const [password, setPassword] = useState("");
-    const [result, setResult] = useState(null);
     const [userDetails, setUserDetails] = useState(null);
     const [loading, setLoading] = useState(false);
     const [fullscreenName, setFullscreenName] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [capsOn, setCapsOn] = useState(false);
+    const [showPassword, setShowPassword] = useState(false);
+
+    // Messages
+    const [displayMessage, setDisplayMessage] = useState(false);
+    const [bodyMessage, setBodyMessage] = useState("");
+    const [titleMessage, setTitleMessage] = useState("");
+    const [colorMessage, setColorMessage] = useState("");
+    const handleCloseDisplayMessage = () => setDisplayMessage(false);
+    /*********************************************************************************************************************/
+    const cleanMessage = () => {
+        setTitleMessage("");
+        setBodyMessage("");
+        setColorMessage("");
+        setDisplayMessage("");
+    }
+    /*********************************************************************************************************************/
+    useEffect(() => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        (async () => {
+            try {
+                const res = await fetch("/cloudServer/protected", {
+                    method: "GET",
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (!res.ok) {
+                    localStorage.removeItem("token");
+                    setIsLoggedIn(false);
+                    return;
+                }
+
+                const data = await res.json();
+                console.log(data)
+
+                setUserDetails({
+                    user: data.user,
+                    user_id: data.user_id,
+                    user_guid: data.user_guid,
+                });
+                setIsLoggedIn(true);
+
+            } catch (e) {
+                setIsLoggedIn(false);
+            }
+        })();
+    }, []);
+    /*********************************************************************************************************************/
+    const togglePasswordVisibility = () => {
+        setShowPassword((prev) => !prev);
+    };
     /*********************************************************************************************************************/
     const handleCaps = (e) => {
         setCapsOn(e.getModifierState && e.getModifierState("CapsLock"));
@@ -29,14 +81,14 @@ function Login() {
         e.preventDefault();
 
         setLoading(true);
-        setResult(null);
 
         if (!user || !password) {
             setLoading(false);
-            setResult({ message: "יש למלא שם משתמש וסיסמה" });
-            setTimeout(() => {
-                setResult(null)
-            }, 3000)
+            setTitleMessage("יש למלא שם משתמש וסיסמה");
+            setBodyMessage("נסה שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
             return;
         }
 
@@ -52,10 +104,12 @@ function Login() {
             const data = await res.json();
 
             if (!res.ok) {
-                setResult({ success: false, message: data.message || "Invalid credentials", emessage: data.emessage });
-                setTimeout(() => {
-                    setResult(null)
-                }, 3000)
+
+                setTitleMessage(data.message);
+                setBodyMessage("נסה שוב");
+                setColorMessage("danger");
+                setDisplayMessage(true);
+                setTimeout(() => cleanMessage(), 2500);
                 return;
             }
 
@@ -64,7 +118,6 @@ function Login() {
                 setIsLoggedIn(true);
                 setUser("");
                 setPassword("");
-                setResult(null);
                 console.log("token stored in localStorage:", data.token);
 
                 setUserDetails({
@@ -91,7 +144,13 @@ function Login() {
             }
 
         } catch (err) {
-            setResult({ success: false, message: err.message });
+            setTitleMessage("משהו התשבש");
+            setBodyMessage("נסה שוב");
+            setColorMessage("danger");
+            setDisplayMessage(true);
+            setTimeout(() => cleanMessage(), 2500);
+            return;
+
         } finally {
             setLoading(false);
         }
@@ -174,7 +233,25 @@ function Login() {
     /*********************************************************************************************************************/
     return (
         <div>
-            <div className="container mt-4 text-start">
+            {/* Loading */}
+            {loading && (
+                <div className="loading-overlay">
+                    <div className="spinner-border text-light" role="status">
+                        <label className="visually-hidden">Loading...</label>
+                    </div>
+                </div>
+            )}
+
+            {/* Message - Start */}
+            <CenteredMessageDialog
+                show={displayMessage}
+                title={titleMessage}
+                bodyMessage={bodyMessage}
+                colorMessage={colorMessage}
+                onClose={handleCloseDisplayMessage}
+            />
+
+            <div className="container mt-4" style={{ maxWidth: "50%" }} dir="rtl">
 
                 <div className="d-flex gap-2 align-items-center" dir="ltr">
                     <img className='me-2 ms-2' src={logo} width="100rem" alt='logo'></img>
@@ -188,38 +265,39 @@ function Login() {
 
                 </div>
 
-                <form onSubmit={loginConnection}>
-                    <div>
-                        <h3 className="mb-4 text-center fw-bold" style={{ color: "#00adee" }}>התחברות לחשבון מנהל</h3>
-                        <hr />
+                <form onSubmit={loginConnection} className="mt-3">
+                    <h3 className="mb-4 text-center fw-bold" style={{ color: "#00adee" }}>התחברות לחשבון מנהל</h3>
+                    <hr />
 
-                        {/* User */}
-                        <div className="mb-3">
-                            <label htmlFor="user" className="form-label fw-bold" style={{ color: "#00adee" }}>
-                                שם משתמש
-                                <span style={{ color: "red" }}>*</span>
-                            </label>
+                    {/* User */}
+                    <div className="mb-3">
+                        <label htmlFor="user" className="form-label fw-bold" style={{ color: "#00adee" }}>
+                            שם משתמש
+                            <span style={{ color: "red" }}>*</span>
+                        </label>
+                        <input
+                            dir="ltr"
+                            type="text"
+                            className="form-control text-start"
+                            name="user"
+                            value={user}
+                            onChange={handleChangeUser}
+                            autoComplete="user"
+                            id="user"
+                        />
+                    </div>
+
+                    {/* Password */}
+                    <div className="mb-3">
+                        <label htmlFor="password" className="form-label fw-bold" style={{ color: "#00adee" }}>
+                            סיסמה
+                            <span style={{ color: "red" }}>*</span>
+                        </label>
+                        <div className="input-group input-group" dir="ltr">
                             <input
                                 dir="ltr"
-                                type="text"
-                                className="form-control text-start"
-                                name="user"
-                                value={user}
-                                onChange={handleChangeUser}
-                                autoComplete="user"
-                                id="user"
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div className="mb-3">
-                            <label htmlFor="password" className="form-label fw-bold" style={{ color: "#00adee" }}>
-                                סיסמה
-                                <span style={{ color: "red" }}>*</span>
-                            </label>
-                            <input
-                                dir="ltr"
-                                type="password"
+                                // type="password"
+                                type={showPassword ? 'text' : 'password'}
                                 className="form-control text-start"
                                 name="password"
                                 value={password}
@@ -232,33 +310,32 @@ function Login() {
                                 onBlur={() => setCapsOn(false)}
                                 aria-describedby="caps-warning"
                             />
-                            {capsOn && (
-                                <div id="caps-warning" style={{ marginTop: 6, color: "crimson", fontSize: 12 }} dir="ltr">
-                                    Caps Lock פעיל
-                                </div>
-                            )}
+                            <button
+                                type="button"
+                                className="btn btn-outline-secondary"
+                                onClick={togglePasswordVisibility}
+                                tabIndex={-1}
+                            >
+                                {showPassword ? <i className="bi bi-eye-slash"></i> : <i className="bi bi-eye"></i>}
+                            </button>
                         </div>
 
-                        {/* Submit button */}
-                        <button
-                            className="btn btn-primary w-100 fw-bold"
-                            disabled={loading}
-                            style={{ backgroundColor: "#00adee", borderColor: "#00adee" }}
-                        >
-                            {loading ? 'טוען' : 'התחברות'}
-                        </button>
-
-                        {/* Result */}
-                        {result && (
-                            <div
-                                className={`alert mt-3 text-center ${result.success ? "alert-success" : "alert-danger"}`}
-                                role="alert"
-                            >
-                                {result.message || result.emessage}
-
+                        {capsOn && (
+                            <div id="caps-warning" style={{ marginTop: 6, color: "crimson", fontSize: 12 }} dir="ltr">
+                                Caps Lock פעיל
                             </div>
                         )}
                     </div>
+
+                    {/* Submit button */}
+                    <button
+                        className="btn btn-primary w-100 fw-bold"
+                        disabled={loading}
+                        style={{ backgroundColor: "#00adee", borderColor: "#00adee" }}
+                    >
+                        {loading ? 'טוען' : 'התחברות'}
+                    </button>
+
                 </form>
             </div>
         </div>
