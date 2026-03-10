@@ -26,7 +26,6 @@ const Users = () => {
     const [colorMessage, setColorMessage] = useState("");
     const handleCloseDisplayMessage = () => setDisplayMessage(false);
     /********************************************************************************************************************/
-
     var lowerCaseLetters = /[a-z]/g;
     var upperCaseLetters = /[A-Z]/g;
     var number = /[0-9]/g;
@@ -38,7 +37,6 @@ const Users = () => {
     const hasNumbers = number.test(password);
     const hasSpecialChar = specialChar.test(password);
     const hasMinLength = password.length >= minLength;
-
     /********************************************************************************************************************/
     const cleanMessage = () => {
         setTitleMessage("");
@@ -817,14 +815,14 @@ const Users = () => {
                     </div>
                 )}
 
-
             </div>
 
-            <div className="col-md-12">
-                <button type="button" className="btn btn-secondary me-3" onClick={clearForm}>
+            <div className="col-md-12 d-flex justify-content-end">
+                <button type="button" className="btn btn-secondary ms-3" onClick={clearForm}>
                     נקה טפסים
                 </button>
             </div>
+
 
         </div>
     );
