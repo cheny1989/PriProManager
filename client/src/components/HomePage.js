@@ -151,7 +151,7 @@ function HomePage({ setIsLoggedIn, user }) {
                             )}
                         </button>
 
-                        <h5 className="m-0">PriPro Manager</h5>
+                        {/* <h5 className="m-0">PriPro Manager</h5> */}
 
                     </div>
                 </div>
